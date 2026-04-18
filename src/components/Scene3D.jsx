@@ -1,8 +1,23 @@
 import { useMemo, useRef, useEffect, useState } from 'react';
-import { Canvas, useThree } from '@react-three/fiber';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
 import { ZONE_LABEL } from '../data/zoning-defaults.js';
+
+// ─────────────────────────────────────────────────────────────
+// 건축 애니메이션 파라미터 (층별 순차 상승)
+// ─────────────────────────────────────────────────────────────
+const FLOOR_STAGGER = 0.12; // 층당 시작 딜레이 (초)
+const FLOOR_DURATION = 0.5; // 한 층이 다 자라는 시간 (초)
+
+// easeOutBack: 생동감 있는 살짝 오버슈트 이징
+function easeOutBack(t) {
+  if (t <= 0) return 0;
+  if (t >= 1) return 1;
+  const c1 = 1.70158;
+  const c3 = c1 + 1;
+  return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
+}
 
 // 좌표 규약: +X = 북(N), -X = 남(S), +Z = 동(E), -Z = 서(W), +Y = 위(Up)
 
@@ -34,7 +49,60 @@ function makeLabelTexture(text, options = {}) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// 건축 매스: 층별 stepback 박스 스택
+// 한 개 층 — 아래부터 솟아오르는 애니메이션
+// - group을 yBottom에 두고 scale.y 0→1로 그룹 자체를 세로로 늘림
+// - opacity 0→0.45 로 페이드인 (생동감)
+// - resetKey 변경 시 startTime 초기화 → 재생
+// ─────────────────────────────────────────────────────────────
+function AnimatedFloor({ box, floorIndex, showEdges, resetKey }) {
+  const groupRef = useRef();
+  const matRef = useRef();
+  const edgeMatRef = useRef();
+  const startRef = useRef(null);
+
+  const geom = useMemo(
+    () => new THREE.BoxGeometry(box.boxD, box.boxH, box.boxW),
+    [box.boxD, box.boxH, box.boxW]
+  );
+
+  // resetKey 바뀌면 애니메이션 재시작
+  useEffect(() => {
+    startRef.current = null;
+    if (groupRef.current) groupRef.current.scale.y = 0.0001;
+    if (matRef.current) matRef.current.opacity = 0;
+    if (edgeMatRef.current) edgeMatRef.current.opacity = 0;
+  }, [resetKey]);
+
+  useFrame(({ clock }) => {
+    const now = clock.getElapsedTime();
+    if (startRef.current === null) startRef.current = now;
+    const elapsed = now - startRef.current - floorIndex * FLOOR_STAGGER;
+    const tRaw = Math.max(0, Math.min(1, elapsed / FLOOR_DURATION));
+    const eased = easeOutBack(tRaw);
+    if (groupRef.current) groupRef.current.scale.y = Math.max(0.0001, eased);
+    if (matRef.current) matRef.current.opacity = 0.45 * Math.min(1, tRaw * 1.8);
+    if (edgeMatRef.current) edgeMatRef.current.opacity = 0.85 * Math.min(1, tRaw * 1.8);
+  });
+
+  const yBottom = box.centerY - box.boxH / 2;
+
+  return (
+    <group ref={groupRef} position={[box.centerX, yBottom, 0]} scale={[1, 0.0001, 1]}>
+      <mesh position={[0, box.boxH / 2, 0]} geometry={geom}>
+        <meshLambertMaterial ref={matRef} color="#4a90e2" transparent opacity={0} />
+      </mesh>
+      {showEdges && (
+        <lineSegments position={[0, box.boxH / 2, 0]}>
+          <edgesGeometry args={[geom]} />
+          <lineBasicMaterial ref={edgeMatRef} color="#1a3a6c" transparent opacity={0} />
+        </lineSegments>
+      )}
+    </group>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// 건축 매스: 층별 stepback 박스 스택 + 순차 상승 애니메이션
 // ─────────────────────────────────────────────────────────────
 function BuildingMass({ envelope, showEdges }) {
   const {
@@ -63,24 +131,25 @@ function BuildingMass({ envelope, showEdges }) {
     return list;
   }, [W, D, floors, floorHeight, sunlight.applied, sunlight.threshold, sunlight.slope]);
 
+  // 입력값이 매스 형태를 바꾸면 resetKey 가 변해 애니메이션이 재시작
+  // (showEdges 같은 단순 표시 토글은 포함하지 않음 — 재시작 불필요)
+  const resetKey = useMemo(
+    () =>
+      `${floors}|${floorHeight}|${W.toFixed(2)}|${D.toFixed(2)}|${sunlight.applied}|${sunlight.threshold}|${sunlight.slope}`,
+    [floors, floorHeight, W, D, sunlight.applied, sunlight.threshold, sunlight.slope]
+  );
+
   return (
     <group>
-      {floorBoxes.map((f, i) => {
-        const geom = new THREE.BoxGeometry(f.boxD, f.boxH, f.boxW);
-        return (
-          <group key={i} position={[f.centerX, f.centerY, 0]}>
-            <mesh geometry={geom}>
-              <meshLambertMaterial color="#4a90e2" transparent opacity={0.45} />
-            </mesh>
-            {showEdges && (
-              <lineSegments>
-                <edgesGeometry args={[geom]} />
-                <lineBasicMaterial color="#1a3a6c" />
-              </lineSegments>
-            )}
-          </group>
-        );
-      })}
+      {floorBoxes.map((f, i) => (
+        <AnimatedFloor
+          key={i}
+          box={f}
+          floorIndex={i}
+          showEdges={showEdges}
+          resetKey={resetKey}
+        />
+      ))}
     </group>
   );
 }
