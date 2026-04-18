@@ -8,12 +8,17 @@ html, body, #root {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans KR', sans-serif;
   color: #222;
   background: #f4f6f8;
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .app {
   height: 100vh;
+  /* iOS Safari dynamic viewport (toolbar collapse) */
+  height: 100dvh;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 .app-header {
@@ -21,6 +26,9 @@ html, body, #root {
   background: #1f3a5f;
   color: #fff;
   border-bottom: 3px solid #c0392b;
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 .app-header h1 {
@@ -33,6 +41,27 @@ html, body, #root {
   margin: 4px 0 0;
   font-size: 12px;
   color: #c7d6e8;
+}
+
+/* 모바일 드로어 토글 버튼 (데스크탑에선 숨김) */
+.drawer-toggle {
+  display: none;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  color: #fff;
+  font-size: 20px;
+  line-height: 1;
+  padding: 6px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.drawer-close {
+  display: none;
+}
+
+.drawer-backdrop {
+  display: none;
 }
 
 .app-main {
@@ -215,4 +244,159 @@ html, body, #root {
   color: #5a3a00;
   line-height: 1.4;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+/* ─────────────────────────────────────────────────────────
+   모바일 / 태블릿 대응 (≤ 768px)
+   - 입력 패널을 슬라이드 드로어로 전환
+   - 3D 씬이 전체 너비 사용
+   - 오버레이는 폰트·여백 축소
+   ───────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .app-header {
+    padding: 10px 14px;
+    gap: 10px;
+  }
+
+  .app-header h1 {
+    font-size: 14px;
+  }
+
+  .subtitle {
+    display: none; /* 모바일에선 공간 확보 */
+  }
+
+  .drawer-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 40px;
+    min-height: 40px;
+    flex-shrink: 0;
+  }
+
+  .app-main {
+    grid-template-columns: 1fr; /* 1열 */
+    padding: 6px;
+    gap: 0;
+  }
+
+  /* 입력 패널 → 왼쪽 드로어 */
+  .panel-left {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 88%;
+    max-width: 340px;
+    z-index: 200;
+    transform: translateX(-100%);
+    transition: transform 0.28s ease-out;
+    box-shadow: 2px 0 14px rgba(0, 0, 0, 0.25);
+    border-radius: 0;
+  }
+
+  .panel-left.drawer-open {
+    transform: translateX(0);
+  }
+
+  .drawer-close {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 34px;
+    height: 34px;
+    background: transparent;
+    border: none;
+    font-size: 26px;
+    line-height: 1;
+    color: #555;
+    cursor: pointer;
+    z-index: 10;
+  }
+
+  .drawer-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    z-index: 150;
+    animation: fade-in 0.2s ease-out;
+  }
+
+  @keyframes fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  /* 3D 씬이 전체 너비 차지 */
+  .panel-scene {
+    height: 100%;
+  }
+
+  /* 오버레이 컴팩트화 */
+  .overlay-summary {
+    top: 8px;
+    left: 8px;
+    padding: 8px 10px;
+    font-size: 11px;
+    max-width: 180px;
+    line-height: 1.4;
+  }
+
+  .overlay-summary h3 {
+    font-size: 12px;
+    margin-bottom: 4px;
+  }
+
+  .overlay-controls {
+    top: 8px;
+    right: 8px;
+    padding: 6px 8px;
+    font-size: 11px;
+  }
+
+  .overlay-controls label {
+    margin: 2px 0;
+  }
+
+  .overlay-disclaimer {
+    bottom: 6px;
+    left: 8px;
+    right: 8px;
+    padding: 6px 8px;
+    font-size: 10px;
+    line-height: 1.35;
+  }
+
+  /* 입력 폼 터치 타겟 확대 */
+  .input-form input[type='number'],
+  .input-form select {
+    padding: 8px 10px;
+    font-size: 15px; /* iOS 자동 줌 방지 (16px 이상 권장) */
+  }
+
+  .input-form label.checkbox input[type='checkbox'] {
+    width: 18px;
+    height: 18px;
+  }
+}
+
+/* 좁은 폰 (≤ 400px) 추가 조정 */
+@media (max-width: 400px) {
+  .overlay-summary {
+    max-width: 150px;
+    font-size: 10px;
+  }
+
+  .overlay-controls {
+    font-size: 10px;
+  }
+
+  .app-header h1 {
+    font-size: 13px;
+  }
 }
