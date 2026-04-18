@@ -35,28 +35,21 @@
 
 ```bash
 npm install
+npm run dev      # 개발 서버 (http://localhost:5173)
+npm run build    # 프로덕션 빌드 (dist/ 생성)
 ```
 
-### Python 프로젝트
+### 테스트
 
 ```bash
-python -m venv .venv
-# Windows PowerShell
-.\.venv\Scripts\Activate.ps1
-# Windows CMD
-.\.venv\Scripts\activate.bat
-# macOS / Linux
-source .venv/bin/activate
-```
-
-```bash
-pip install -r requirements.txt
+node tests/envelope.test.mjs   # 로직 단위 테스트
+node tests/runtime.test.mjs    # UI 런타임 테스트 (dev 서버 실행 중이어야 함)
 ```
 
 ### 공통
 
-- `README.md`, `CODE_STYLE.md`, `CONTRIBUTING.md`를 먼저 확인합니다.
-- 프로젝트에 필요한 의존성 파일(`package.json`, `requirements.txt`)이 있는지 확인합니다.
+- `README.md`, `CLAUDE.md`, `CODE_STYLE.md`, `CONTRIBUTING.md`를 먼저 확인합니다.
+- 배포 설정은 `vercel.json` 참고.
 
 ## 파일 요약
 

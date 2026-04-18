@@ -26,32 +26,22 @@
 
 ## 환경 설정
 
-### Node.js 환경
-
 ```bash
 npm install
+npm run dev      # 개발 서버
+npm run build    # 프로덕션 빌드
 ```
 
-### Python 환경
+### 테스트
 
 ```bash
-python -m venv .venv
-# Windows PowerShell
-.\.venv\Scripts\Activate.ps1
-# Windows CMD
-.\.venv\Scripts\activate.bat
-# macOS / Linux
-source .venv/bin/activate
+node tests/envelope.test.mjs   # 로직 단위 테스트
+node tests/runtime.test.mjs    # UI 런타임 테스트 (dev 서버 선행 실행 필요)
 ```
 
-```bash
-pip install -r requirements.txt
-```
+### 배포
 
-### 참고
-
-- 프로젝트에 따라 필요한 의존성 파일(`package.json`, `requirements.txt`)이 있는지 확인합니다.
-- Python 가상환경 사용은 개발 환경 일관성을 위해 권장됩니다.
+Vercel과 GitHub 연동 시 `master` 브랜치에 push하면 자동 배포됩니다. 설정은 `vercel.json` 참고.
 
 ## PR 작성 기준
 
